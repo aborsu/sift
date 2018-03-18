@@ -1,5 +1,5 @@
 import re
-from cStringIO import StringIO
+from io import StringIO
 from warc import WARCFile
 from dragnet import content_extractor, BlockifyError
 from lxml import etree
@@ -49,16 +49,17 @@ class WARCCorpus(ModelBuilder, Model):
                 "org.apache.hadoop.io.LongWritable",
                 "org.apache.hadoop.io.Text",
                 conf = { "textinputformat.record.delimiter": PAGE_DELIMITER })\
-            .filter(lambda (_, part): part)\
-            .map(lambda (_, part): PAGE_DELIMITER+part.encode('utf-8'))\
+            .filter(lambda __part: __part[1])\
+            .map(lambda __part1: PAGE_DELIMITER+__part1[1].encode('utf-8'))\
             .flatMap(self.parse_warc_content)
 
         if self.language != None:
-            warcs = warcs.filter(lambda (url, content): self.try_get_lang(content) == self.language)
+            warcs = warcs.filter(lambda url_content: self.try_get_lang(url_content[1]) == self.language)
         return warcs
 
     @staticmethod
-    def format_item((url, content)):
+    def format_item(xxx_todo_changeme):
+        (url, content) = xxx_todo_changeme
         return {
             '_id': url,
             'content': content,
@@ -68,7 +69,8 @@ class CommonCrawlArticles(ModelBuilder, Documents):
     THRESHOLD_CONTENT_SZ = 250000
 
     @staticmethod
-    def clean_content((url, content)):
+    def clean_content(xxx_todo_changeme2):
+        (url, content) = xxx_todo_changeme2
         try:
             blocks = content_extractor.analyze(content, blocks=True)
             content = ''.join(etree.tostring(b.features['block_start_element']) for b in blocks)

@@ -10,7 +10,7 @@
 import re
 import xml.etree.cElementTree as ET
 
-from htmlentitydefs import name2codepoint
+from html.entities import name2codepoint
 
 wikilink_prefix = 'en.wikipedia.org/wiki/'
 
@@ -42,7 +42,8 @@ RE_EMPTY_PARENS = re.compile(r' \(\s*\)')
 
 RE_HTML_ENT = re.compile("&#?(\w+);")
 
-def remove_markup((uri, text)):
+def remove_markup(xxx_todo_changeme):
+    (uri, text) = xxx_todo_changeme
     text = re.sub(RE_P2, "", text)
 
     # TODO: may be desirable to extract captions for files and images and insert them back into the document
@@ -129,7 +130,7 @@ def remove_template(s):
     return s
 
 def extract_tag_content(s, tags, include_content=True):
-    s = s.replace(u'\u2502','|')
+    s = s.replace('\u2502','|')
     for t in tags:
         parts = []
         last_match_end = None
@@ -165,9 +166,9 @@ def html_unescape(text):
         span, code = m.group(0), m.group(1)
         try:
             if span[1] == "#":
-                return unichr(int(code[1:], 16)) if span[2] == "x" else unichr(int(code))
+                return chr(int(code[1:], 16)) if span[2] == "x" else chr(int(code))
             else:
-                return unichr(name2codepoint[code])
+                return chr(name2codepoint[code])
         except:
             return span
     return re.sub(RE_HTML_ENT, replace, text)

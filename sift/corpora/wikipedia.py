@@ -18,13 +18,15 @@ class WikipediaCorpus(ModelBuilder, Model):
                 "org.apache.hadoop.io.LongWritable",
                 "org.apache.hadoop.io.Text",
                 conf = { "textinputformat.record.delimiter": PAGE_DELIMITER })\
-            .map(lambda (_, part): (part.find(PAGE_START), part))\
-            .filter(lambda (offset, _): offset >= 0)\
-            .map(lambda (offset, content): content[offset:]+PAGE_END)\
-            .map(wikicorpus.extract_page)
+            .map(lambda __part: (__part[1].find(PAGE_START), __part[1]))\
+            .filter(lambda offset__: offset__[0] >= 0)\
+            .map(lambda offset_content: offset_content[1][offset_content[0]:]+PAGE_END)\
+            .map(wikicorpus.extract_page)\
+            .map(WikipediaCorpus.format_item)
 
     @staticmethod
-    def format_item((title, ns, pid, redirect, content)):
+    def format_item(xxx_todo_changeme):
+        (title, ns, pid, redirect, content) = xxx_todo_changeme
         return {
             '_id': title,
             'pid': pid,
@@ -44,23 +46,23 @@ class WikipediaRedirects(ModelBuilder, Redirects):
             .filter(lambda page: page['redirect'] != None)\
             .map(lambda page: (page['_id'], page['redirect']))\
             .mapValues(wikicorpus.normalise_wikilink)\
-            .map(lambda (s, t): (s, pfx+t))
+            .map(lambda s_t2: (s_t2[0], pfx+s_t2[1]))
 
         if self.resolve_transitive:
             redirects = redirects.cache()
 
             num_targets = redirects\
-                .map(lambda (k,v): v)\
+                .map(lambda k_v1: k_v1[1])\
                 .distinct()\
                 .count()
 
             redirects = redirects\
-                .map(lambda (s, t): (t, s)).leftOuterJoin(redirects)\
-                .map(lambda (target, (source, redirect)): (source, redirect or target))
+                .map(lambda s_t: (s_t[1], s_t[0])).leftOuterJoin(redirects)\
+                .map(lambda target_source_redirect: (target_source_redirect[1][0], target_source_redirect[1][1] or target_source_redirect[0]))
 
             if verbose:
                 redirects = redirects.cache()
-                final_num_targets = redirects.map(lambda (k,v): v).distinct().count()
+                final_num_targets = redirects.map(lambda k_v: k_v[1]).distinct().count()
                 log.info('Resolved %i transitive redirects...', num_targets - final_num_targets)
 
         return redirects.distinct()
@@ -80,12 +82,12 @@ class WikipediaArticles(ModelBuilder, Documents):
 
             # redirect set is typically too large to be broadcasted for a map-side join
             articles = articles\
-                .flatMap(lambda (pid, (text, links)): ((t, (pid, span)) for t, span in links))\
+                .flatMap(lambda pid_text_links: ((t, (pid_text_links[0], span)) for t, span in pid_text_links[1][1]))\
                 .leftOuterJoin(redirects)\
-                .map(lambda (t, ((pid, span), r)): (pid, (r if r else t, span)))\
+                .map(lambda t_pid_span_r: (t_pid_span_r[0][0], (t_pid_span_r[1][1] if t_pid_span_r[1][1] else t_pid_span_r[0], t_pid_span_r[0][1])))\
                 .groupByKey()\
                 .mapValues(list)\
                 .join(articles)\
-                .map(lambda (pid, (links, (text, _))): (pid, (text, links)))
+                .map(lambda pid_links_text__: (pid_links_text__[0], (pid_links_text__[1][0], pid_links_text__[1][0])))
 
         return articles

@@ -1,4 +1,4 @@
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import ujson as json
 
 from sift.dataset import Model, DocumentModel
@@ -22,9 +22,9 @@ class MapRedirects(Model):
     @staticmethod
     def map_redirects(source, target):
         return source\
-            .map(lambda (s, t): (t, s))\
+            .map(lambda s_t: (s_t[1], s_t[0]))\
             .leftOuterJoin(target)\
-            .map(lambda (t, (s, r)): (s, r or t))\
+            .map(lambda t_s_r: (t_s_r[1][0], t_s_r[1][1] or t_s_r[0]))\
             .distinct()
 
     def build(self, from_rds, to_rds):
@@ -32,15 +32,15 @@ class MapRedirects(Model):
         # e.g. (a > b) and (a > c) becomes (b > c)
         mapped_to = to_rds\
             .leftOuterJoin(from_rds)\
-            .map(lambda (s, (t, f)): (f or s, t))\
+            .map(lambda s_t_f: (s_t_f[1][1] or s_t_f[0], s_t_f[1][0]))\
 
         # map target of origin kb
         # e.g. (a > b) and (b > c) becomes (a > c)
         mapped_from = from_rds\
-            .map(lambda (s, t): (t, s))\
+            .map(lambda s_t1: (s_t1[1], s_t1[0]))\
             .leftOuterJoin(mapped_to)\
-            .map(lambda (t, (s, r)): (s, r))\
-            .filter(lambda (s, t): t)
+            .map(lambda t_s_r2: (t_s_r2[1][0], t_s_r2[1][1]))\
+            .filter(lambda s_t3: s_t3[1])
 
         rds = (mapped_from + mapped_to).distinct()
         rds.cache()
@@ -61,9 +61,9 @@ class MapRedirects(Model):
 
     def format_items(self, model):
         return model\
-            .map(lambda (source, target): {
-                '_id': source,
-                'target': target
+            .map(lambda source_target: {
+                '_id': source_target[0],
+                'target': source_target[1]
             })
 
     @classmethod
@@ -94,13 +94,13 @@ class RedirectDocuments(DocumentModel):
 
         return corpus\
             .map(lambda d: (d['_id'], set(l['target'] for l in d['links'])))\
-            .flatMap(lambda (pid, links): [(t, pid) for t in links])\
+            .flatMap(lambda pid_links: [(t, pid_links[0]) for t in pid_links[1]])\
             .leftOuterJoin(redirects)\
-            .map(lambda (t, (pid, r)): (pid, (t, r if r else t)))\
+            .map(lambda t_pid_r: (t_pid_r[1][0], (t_pid_r[0], t_pid_r[1][1] if t_pid_r[1][1] else t_pid_r[0])))\
             .groupByKey()\
             .mapValues(dict)\
             .join(articles)\
-            .map(lambda (pid, (rds, doc)): map_doc_links(doc, rds))
+            .map(lambda pid_rds_doc: map_doc_links(pid_rds_doc[1][1], pid_rds_doc[1][0]))
 
     def format_items(self, model):
         return model

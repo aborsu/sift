@@ -1,4 +1,4 @@
-import cPickle as pickle
+import pickle as pickle
 import ujson as json
 import msgpack
 import base64
@@ -25,10 +25,10 @@ class TsvFormat(ModelFormat):
                 key_order = []
                 if '_id' in item:
                     key_order.append('_id')
-                key_order += sorted(k for k in item.iterkeys() if k != '_id')
+                key_order += sorted(k for k in item.keys() if k != '_id')
 
             # todo: proper field serialization and escapes
-            yield u'\t'.join(unicode(item[k]) for k in key_order).encode('utf-8')
+            yield '\t'.join(str(item[k]) for k in key_order).encode('utf-8')
 
     def __call__(self, model):
         return model.mapPartitions(self.items_to_tsv)
@@ -65,7 +65,7 @@ class RedisFormat(ModelFormat):
 
     def to_value(self, item):
         if self.field:
-            item = unicode(item[self.field])
+            item = str(item[self.field])
         else:
             item.pop('_id', None)
         return self.serializer(item)
@@ -74,7 +74,7 @@ class RedisFormat(ModelFormat):
         cmd = '\r\n'.join(["*3", "$3", "SET", "${}", "{}", "${}", "{}"])+'\r'
         return model\
             .map(lambda i: ((self.prefix+i['_id'].replace('"','\\"')).encode('utf-8'), self.to_value(i)))\
-            .map(lambda (t, c): cmd.format(len(t), t, len(c), c))
+            .map(lambda t_c: cmd.format(len(t_c[0]), t_c[0], len(t_c[1]), t_c[1]))
 
     @classmethod
     def add_arguments(cls, p):

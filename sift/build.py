@@ -8,7 +8,7 @@ import ujson as json
 from pyspark import SparkContext, SparkConf
 from sift.format import ModelFormat
 
-import logging
+from . import logging
 log = logging.getLogger() 
 
 class DatasetBuilder(object):
@@ -45,7 +45,7 @@ class DatasetBuilder(object):
                 shutil.rmtree(self.output_path)
             m.saveAsTextFile(self.output_path, 'org.apache.hadoop.io.compress.GzipCodec')
         elif self.sample > 0:
-            print '\n'.join(str(i) for i in m.take(self.sample))
+            print('\n'.join(str(i) for i in m.take(self.sample)))
 
         log.info('Done.')
 

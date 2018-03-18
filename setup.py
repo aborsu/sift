@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 __version__ = '0.3.0'
 __pkg_name__ = 'textsift'
 
+
 setup(
     name = __pkg_name__,
     version = __version__,
@@ -35,6 +36,9 @@ setup(
         "pycld2",
         "scipy",
         "scikit-learn"
+    ],
+    dependency_links=[
+        'git+https://github.com/aborsu/pattern@development@master'
     ],
     test_suite = __pkg_name__ + '.test'
 )

@@ -1,12 +1,12 @@
 ujson
 numpy
 scipy
-pattern
 gensim
 msgpack-python
 findspark
 jupyter
 spacy
+git+https://github.com/aborsu/pattern@development
 lxml
 beautifulsoup4
 warc

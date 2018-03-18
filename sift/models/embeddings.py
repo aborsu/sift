@@ -44,10 +44,10 @@ class EntitySkipGramEmbeddings(ModelBuilder, Model):
     def build(self, mentions):
         from gensim.models.word2vec import Word2Vec
         sentences = mentions\
-            .filter(lambda (target, source, text, span): target.startswith(self.filter_target))\
+            .filter(lambda target_source_text_span: target_source_text_span[0].startswith(self.filter_target))\
 
         sentences = sentences\
-            .map(lambda (target, source, text, (s,e)): list(chain(ngrams(text[:s],1), [target], ngrams(text[e:],1))))
+            .map(lambda target_source_text_s_e: list(chain(ngrams(target_source_text_s_e[2][:target_source_text_s_e[3][0]],1), [target_source_text_s_e[0]], ngrams(target_source_text_s_e[2][target_source_text_s_e[3][1]:],1))))
 
         if self.coalesce:
             sentences = sentences.coalesce(self.coalesce)
@@ -63,9 +63,9 @@ class EntitySkipGramEmbeddings(ModelBuilder, Model):
         term_counts = sentences\
             .flatMap(lambda tokens: ((t, 1) for t in tokens))\
             .reduceByKey(add)\
-            .filter(lambda (t, count): \
-                (t.startswith(self.filter_target) and count >= self.min_entity_count) or \
-                (count >= self.min_word_count))
+            .filter(lambda t_count: \
+                (t_count[0].startswith(self.filter_target) and t_count[1] >= self.min_entity_count) or \
+                (t_count[1] >= self.min_word_count))
 
         model.raw_vocab = dict(term_counts.collect())
         model.scale_vocab(trim_rule=self.get_trim_rule())
@@ -77,7 +77,7 @@ class EntitySkipGramEmbeddings(ModelBuilder, Model):
         log.info('Normalising embeddings...')
         model.init_sims(replace=True)
 
-        total_entities = sum(1 if t.startswith(self.filter_target) else 0 for t in model.vocab.iterkeys())
+        total_entities = sum(1 if t.startswith(self.filter_target) else 0 for t in model.vocab.keys())
         total_words = len(model.vocab) - total_entities
 
         vocab_sz = 0
@@ -93,12 +93,13 @@ class EntitySkipGramEmbeddings(ModelBuilder, Model):
             .context\
             .parallelize(
                 (t, model.syn0[vi.index].tolist())
-                for t, vi in model.vocab.iteritems()
+                for t, vi in model.vocab.items()
                     if (not self.exclude_entities and t.startswith(self.filter_target)) or
                        (not self.exclude_words and not t.startswith(self.filter_target)))
 
     @staticmethod
-    def format_item((entity, embedding)):
+    def format_item(xxx_todo_changeme):
+        (entity, embedding) = xxx_todo_changeme
         return {
             '_id': entity,
             'embedding': embedding

@@ -2,6 +2,7 @@
 set -e
 
 WKDATE=latest
+LANGUAGE=nl
 PARA_ARG=""
 
 if [ $# -gt 0 ]
@@ -22,7 +23,7 @@ export WKDATE
 rm -rf $WKDIR
 mkdir -p $WKDIR
 
-curl "https://dumps.wikimedia.org/enwiki/$WKDATE/" |\
-grep "enwiki-$WKDATE-pages-articles[0-9]*.xml-p[0-9]*p[0-9]*.bz2\""|\
+curl 'https://dumps.wikimedia.org/'"$LANGUAGE"'wiki/'"$WKDATE"'/' |\
+grep "$LANGUAGE"'wiki-'"$WKDATE"'-pages-articles[0-9]*.xml-p[0-9]*p[0-9]*.bz2"'|\
 awk -v pfx=$LINK_PFX -F'"' '{print "https://dumps.wikimedia.org" pfx $2}' |\
 xargs -n1 $PARA_ARG -L 1 bash -c 'wget $0 -P $WKDIR'
